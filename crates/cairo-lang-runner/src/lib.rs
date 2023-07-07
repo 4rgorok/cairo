@@ -38,6 +38,7 @@ use itertools::chain;
 use num_traits::ToPrimitive;
 use thiserror::Error;
 
+use crate::short_string::as_cairo_short_string;
 pub mod casm_run;
 pub mod short_string;
 
@@ -519,6 +520,39 @@ impl SierraCasmRunner {
 
     pub fn get_casm_program(&self) -> &CairoProgram {
         &self.casm_program
+    }
+}
+
+pub fn report(result: &RunResultStarknet, print_full_memory: bool){
+    match &result.value {
+        RunResultValue::Success(values) => {
+            println!("Run completed successfully, returning {values:?}")
+        }
+        RunResultValue::Panic(values) => {
+            print!("Run panicked with [");
+            for value in values {
+                match as_cairo_short_string(&value) {
+                    Some(as_string) => print!("{value} ('{as_string}'), "),
+                    None => print!("{value}, "),
+                }
+            }
+            println!("].")
+        }
+    }
+
+    if let Some(gas) = &result.gas_counter {
+        println!("Remaining gas: {gas}");
+    }
+
+    if print_full_memory {
+        print!("Full memory: [");
+        for cell in &result.memory {
+            match cell {
+                None => print!("_, "),
+                Some(value) => print!("{value}, "),
+            }
+        }
+        println!("]");
     }
 }
 

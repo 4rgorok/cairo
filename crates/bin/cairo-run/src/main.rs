@@ -7,8 +7,7 @@ use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
 use cairo_lang_compiler::project::{check_compiler_path, setup_project};
 use cairo_lang_diagnostics::ToOption;
-use cairo_lang_runner::short_string::as_cairo_short_string;
-use cairo_lang_runner::{SierraCasmRunner, StarknetState};
+use cairo_lang_runner::{SierraCasmRunner, StarknetState, report};
 use cairo_lang_sierra::extensions::gas::{
     BuiltinCostWithdrawGasLibfunc, RedepositGasLibfunc, WithdrawGasLibfunc,
 };
@@ -84,33 +83,7 @@ fn main() -> anyhow::Result<()> {
             StarknetState::default(),
         )
         .with_context(|| "Failed to run the function.")?;
-    match result.value {
-        cairo_lang_runner::RunResultValue::Success(values) => {
-            println!("Run completed successfully, returning {values:?}")
-        }
-        cairo_lang_runner::RunResultValue::Panic(values) => {
-            print!("Run panicked with [");
-            for value in &values {
-                match as_cairo_short_string(value) {
-                    Some(as_string) => print!("{value} ('{as_string}'), "),
-                    None => print!("{value}, "),
-                }
-            }
-            println!("].")
-        }
-    }
-    if let Some(gas) = result.gas_counter {
-        println!("Remaining gas: {gas}");
-    }
-    if args.print_full_memory {
-        print!("Full memory: [");
-        for cell in &result.memory {
-            match cell {
-                None => print!("_, "),
-                Some(value) => print!("{value}, "),
-            }
-        }
-        println!("]");
-    }
+
+    report(&result, args.print_full_memory);
     Ok(())
 }
